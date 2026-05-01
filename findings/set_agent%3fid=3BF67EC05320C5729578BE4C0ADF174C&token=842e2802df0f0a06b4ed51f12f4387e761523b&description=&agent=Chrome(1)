@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>test</title>
+</head>
+
+<body>
+  <script>
+    (async () => {
+      const timestamp = new Date().toISOString();
+
+      const system = {
+        platform: navigator.platform,
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        languages: navigator.languages,
+        cookieEnabled: navigator.cookieEnabled,
+        doNotTrack: navigator.doNotTrack ?? null,
+        hardwareConcurrency: navigator.hardwareConcurrency,
+        deviceMemory: navigator.deviceMemory ?? null,
+        maxTouchPoints: navigator.maxTouchPoints ?? null,
+        vendor: navigator.vendor,
+        appVersion: navigator.appVersion,
+        appName: navigator.appName,
+        appCodeName: navigator.appCodeName,
+        product: navigator.product,
+        productSub: navigator.productSub
+      };
+
+      function getWebGLInfo() {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return null;
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        const extensions = gl.getSupportedExtensions() || [];
+        return {
+          vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR),
+          renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+          version: gl.getParameter(gl.VERSION),
+          shadingLanguageVersion: gl.getParameter(gl.SHADING_LANGUAGE_VERSION),
+          extensions: extensions
+        };
+      }
+      const webgl = getWebGLInfo();
+
+      function getCanvasFingerprintDataURL() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 150;
+        const ctx = canvas.getContext('2d');
+        // draw text and shapes similar to fingerprinting methods
+        ctx.textBaseline = 'top';
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = '#069';
+        ctx.fillText('fingerprint', 2, 15);
+        return canvas.toDataURL(); // b64
+      }
+      const canvas = {
+        fingerprint: getCanvasFingerprintDataURL(),
+        width: 300,
+        height: 150
+      };
+
+      const net = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {};
+      const network = {
+        connection: {
+          effectiveType: net.effectiveType || null,
+          rtt: net.rtt || null,
+          downlink: net.downlink || null,
+          saveData: net.saveData || false
+        },
+        online: navigator.onLine
+      };
+
+      const screenInfo = {
+        width: screen.width,
+        height: screen.height,
+        availWidth: screen.availWidth,
+        availHeight: screen.availHeight,
+        colorDepth: screen.colorDepth,
+        pixelDepth: screen.pixelDepth,
+        orientation: {
+          type: (screen.orientation && screen.orientation.type) || null,
+          angle: (screen.orientation && screen.orientation.angle) || 0
+        }
+      };
+
+      const hardware = {
+        hardwareConcurrency: navigator.hardwareConcurrency,
+        deviceMemory: navigator.deviceMemory ?? null,
+        maxTouchPoints: navigator.maxTouchPoints ?? null
+      };
+
+      const language = {
+        language: navigator.language,
+        languages: navigator.languages
+      };
+
+      // TODO
+      const commonFonts = [
+        "Arial", "Arial Black", "Arial Narrow", "Comic Sans MS", "Courier",
+        "Courier New", "Georgia", "Impact", "Lucida Console", "Tahoma",
+        "Times", "Times New Roman", "Trebuchet MS", "Verdana"
+      ];
+
+      function getWebRTCInfo() {
+        return new Promise((resolve, reject) => {
+          const webrtc = { candidates: [], sdp: "" };
+
+          const pc = new RTCPeerConnection();
+          pc.createDataChannel("test");
+
+          pc.onicecandidate = (event) => {
+            if (event.candidate) {
+              webrtc.candidates.push(event.candidate);
+            }
+          };
+
+          pc.createOffer()
+            .then(offer => {
+              webrtc.sdp = offer.sdp;
+              return pc.setLocalDescription(offer);
+            })
+            .then(() => {
+              setTimeout(() => resolve(webrtc), 500);
+            })
+            .catch(reject);
+        });
+      }
+
+      const webrtc = getWebRTCInfo();
+
+      const audioContext = window.AudioContext || window.webkitAudioContext;
+      let audio = {
+        sampleRate: null,
+        maxChannelCount: null,
+        supported: false
+      };
+      if (audioContext) {
+        const ctx = new audioContext();
+        audio.sampleRate = ctx.sampleRate;
+        audio.maxChannelCount = ctx.destination.maxChannelCount || null;
+        audio.supported = true;
+        ctx.close(); // clean up
+      }
+
+      const misc = {
+        cookiesEnabled: navigator.cookieEnabled,
+        doNotTrack: navigator.doNotTrack ?? null,
+        javaEnabled: navigator.javaEnabled ? navigator.javaEnabled() : false,
+        pdfViewerEnabled: 'pdfViewerEnabled' in navigator ? navigator.pdfViewerEnabled : true,
+        webdriver: navigator.webdriver || false,
+        plugins: Array.from(navigator.plugins).map(p => ({
+          name: p.name,
+          description: p.description,
+          filename: p.filename
+        }))
+      };
+
+      const fingerprint = {
+        timestamp,
+        system: JSON.stringify(system),
+        webgl: JSON.stringify(webgl),
+        canvas: JSON.stringify(canvas),
+        network: JSON.stringify(network),
+        screen: JSON.stringify(screenInfo),
+        hardware: JSON.stringify(hardware),
+        language: JSON.stringify(language),
+        fonts: JSON.stringify(commonFonts),
+        webrtc: JSON.stringify(webrtc),
+        audio: JSON.stringify(audio),
+        misc: JSON.stringify(misc)
+      };
+
+      // Преобразуем в URLSearchParams
+      const body = new URLSearchParams(fingerprint);
+
+      fetch("?id=3BF67EC05320C5729578BE4C0ADF174C&token=842e2802df0f0a06b4ed51f12f4387e761523b&description=&agent=Chrome&act=log", {
+        method: "POST",
+        body: body,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      })
+        .then(() => window.location.href = "about:blank");
+    })()
+  </script>
+</body>
+
+</html>
